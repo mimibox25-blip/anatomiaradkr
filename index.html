@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz anatomiczny – osobne pule PL i łacina</title>
+  <style>
+    :root {
+      --bg: #eef2f6;
+      --card: #ffffff;
+      --primary: #2563eb;
+      --primary-light: #dbeafe;
+      --latin: #6d28d9;
+      --latin-light: #ede9fe;
+      --border: #cbd5e1;
+      --text: #0f172a;
+      --muted: #475569;
+      --ok-bg: #dcfce7;
+      --ok-border: #16a34a;
+      --err-bg: #fee2e2;
+      --err-border: #dc2626;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 1rem;
+      line-height: 1.35;
+    }
+
+    /* Główny układ symetryczny: lewa = obraz na wysokość ekranu, prawa = quiz */
+    .workspace {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(380px, 1fr) minmax(440px, 1.15fr);
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    .left-panel {
+      background: #0b0f17;
+      padding: 0.75rem;
+      border-radius: 14px;
+      box-shadow: 0 6px 22px rgba(15, 23, 42, 0.08);
+      position: sticky;
+      top: 1rem;
+      height: calc(100vh - 2rem);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .left-panel img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .right-panel {
+      background: var(--card);
+      padding: 1.25rem 1.35rem;
+      border-radius: 14px;
+      box-shadow: 0 6px 22px rgba(15, 23, 42, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .badge {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 700;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .hint {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .pools-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.9rem;
+    }
+
+    .pool-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.8rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pool-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin: 0 0 0.6rem;
+    }
+
+    .pool-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 0.2rem;
+      align-content: flex-start;
+    }
+
+    .chip {
+      background: #ffffff;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 0.38rem 0.7rem;
+      font-size: 0.84rem;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.12s ease;
+    }
+
+    .chip.la-chip {
+      font-style: italic;
+    }
+
+    .chip:hover {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .chip.selected-pl {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    .chip.selected-la {
+      background: var(--latin);
+      color: #ffffff;
+      border-color: var(--latin);
+    }
+
+    .chip.used {
+      opacity: 0.28;
+      pointer-events: none;
+      transform: none;
+    }
+
+    /* Lista numerów 1-27 */
+    .slots-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .slot-row {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      align-items: center;
+      gap: 0.7rem;
+    }
+
+    .slot-num {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--text);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slot-box {
+      border: 1.5px dashed var(--border);
+      border-radius: 9px;
+      padding: 0.5rem 0.8rem;
+      min-height: 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: #ffffff;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .slot-box:hover {
+      border-color: var(--primary);
+      background: #f8fafc;
+    }
+
+    .slot-box.complete {
+      border-style: solid;
+      border-color: #94a3b8;
+    }
+
+    .slot-box.correct {
+      background: var(--ok-bg);
+      border-color: var(--ok-border);
+      color: #14532d;
+    }
+
+    .slot-box.wrong {
+      background: var(--err-bg);
+      border-color: var(--err-border);
+      color: #7f1d1d;
+    }
+
+    .slot-lines {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+    }
+
+    .slot-pl {
+      font-weight: 600;
+      font-size: 0.88rem;
+    }
+
+    .slot-la {
+      font-style: italic;
+      font-size: 0.86rem;
+      color: var(--latin);
+      text-align: right;
+    }
+
+    .slot-box.correct .slot-la {
+      color: #14532d;
+    }
+
+    .slot-box.wrong .slot-la {
+      color: #7f1d1d;
+    }
+
+    .missing {
+      color: #94a3b8;
+      font-style: normal;
+      font-weight: 400;
+      font-size: 0.84rem;
+    }
+
+    .clear-btn {
+      font-size: 0.82rem;
+      color: #64748b;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+    }
+
+    .clear-btn:hover {
+      background: #f1f5f9;
+      color: var(--text);
+    }
+
+    .correct-answer {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #15803d;
+      margin-top: 0.35rem;
+      border-top: 1px solid rgba(22, 163, 74, 0.25);
+      padding-top: 0.25rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid #e2e8f0;
+      align-items: center;
+    }
+
+    button.btn {
+      padding: 0.65rem 1.2rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.12s ease;
+    }
+
+    button.btn:hover {
+      opacity: 0.92;
+    }
+
+    .btn-check { background: var(--primary); color: #fff; }
+    .btn-reset { background: #e2e8f0; color: var(--text); }
+
+    .result-msg {
+      font-weight: 700;
+      font-size: 0.98rem;
+      margin: 0;
+    }
+
+    @media (max-width: 1024px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+      .left-panel {
+        position: static;
+        height: 85vh;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .pools-grid {
+        grid-template-columns: 1fr;
+      }
+      .slot-lines {
+        grid-template-columns: 1fr auto;
+      }
+      .slot-la {
+        grid-column: 1 / -2;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="workspace">
+    <div class="left-panel">
+      <img id="quiz-image" src="miednica.jpg" alt="Rysunek anatomiczny – miednica i kręgosłup" />
+    </div>
+
+    <div class="right-panel">
+      <div class="panel-header">
+        <h1>Dobierz nazwę PL i łacinę do numerów (1–27)</h1>
+        <span class="badge" id="counter-badge">Kompletnych: 0 / 27</span>
+      </div>
+
+      <p class="hint">
+        Wybierz termin po polsku (niebieski) i/lub po łacinie (fioletowy), a następnie kliknij numer, aby przypisać. Kliknięcie wypełnionego wiersza czyści wybór.
+      </p>
+
+      <div class="pools-grid">
+        <div class="pool-box">
+          <p class="pool-title">Pula polska (przetasowana)</p>
+          <div class="pool-chips" id="pl-pool"></div>
+        </div>
+        <div class="pool-box">
+          <p class="pool-title">Pula łacińska (przetasowana)</p>
+          <div class="pool-chips" id="la-pool"></div>
+        </div>
+      </div>
+
+      <div class="slots-list" id="slots-list"></div>
+
+      <div class="actions">
+        <button class="btn btn-check" id="check-btn">Sprawdź odpowiedzi</button>
+        <button class="btn btn-reset" id="reset-btn">Wyczyść i przetasuj</button>
+      </div>
+
+      <p class="result-msg" id="result-msg"></p>
+    </div>
+  </div>
+
+  <script>
+    const items = [
+      { id: 1,  pl: "Stawy żebrowo-kręgowe",        la: "Articulationes costovertebrales" },
+      { id: 2,  pl: "Wyrostek stawowy górny",        la: "Processus articularis superior" },
+      { id: 3,  pl: "Podstawa kości krzyżowej",      la: "Basis ossis sacri" },
+      { id: 4,  pl: "Skrzydło kości krzyżowej",      la: "Ala ossis sacri" },
+      { id: 5,  pl: "Staw krzyżowo-biodrowy",        la: "Articulatio sacroiliaca" },
+      { id: 6,  pl: "Rożek krzyżowy",                la: "Cornu sacrale" },
+      { id: 7,  pl: "Staw biodrowy",                 la: "Articulatio coxae" },
+      { id: 8,  pl: "Nasada łuku kręgu",             la: "Pediculus arcus vertebrae" },
+      { id: 9,  pl: "Trzon kręgu",                   la: "Corpus vertebrae" },
+      { id: 10, pl: "Wyrostek kolczysty",            la: "Processus spinosus" },
+      { id: 11, pl: "Spojenie międzykręgowe",        la: "Symphysis intervertebralis" },
+      { id: 12, pl: "Stawy wyrostków poprzecznych",  la: "Articulationes zygapophysiales" },
+      { id: 13, pl: "Spojenie lędźwiowo-krzyżowe",   la: "Symphysis lumbosacralis" },
+      { id: 14, pl: "Otwory krzyżowe tylne",         la: "Foramina sacralia posteriora" },
+      { id: 15, pl: "Kość krzyżowa",                 la: "Os sacrum" },
+      { id: 16, pl: "Otwór krzyżowy przedni",        la: "Foramen sacrale anterius" },
+      { id: 17, pl: "Wierzchołek",                   la: "Apex ossis sacri" },
+      { id: 18, pl: "Staw krzyżowo-guziczny",        la: "Articulatio sacrococcygea" },
+      { id: 19, pl: "Kość guziczna",                 la: "Os coccygis" },
+      { id: 20, pl: "Dołek głowy kości udowej",      la: "Fovea capitis femoris" },
+      { id: 21, pl: "Spojenie łonowe",               la: "Symphysis pubica" },
+      { id: 22, pl: "Głowa kości udowej",            la: "Caput femoris" },
+      { id: 23, pl: "Szyjka kości udowej",           la: "Collum femoris" },
+      { id: 24, pl: "Krętarz większy",               la: "Trochanter major" },
+      { id: 25, pl: "Kość udowa",                    la: "Femur" },
+      { id: 26, pl: "Krętarz mniejszy",              la: "Trochanter minor" },
+      { id: 27, pl: "Trzon kości udowej",            la: "Corpus femoris" }
+    ];
+
+    let shuffledPl = [];
+    let shuffledLa = [];
+    let selectedPlId = null;
+    let selectedLaId = null;
+    let slots = [];
+    let checked = false;
+
+    const plPoolEl = document.getElementById("pl-pool");
+    const laPoolEl = document.getElementById("la-pool");
+    const slotsEl = document.getElementById("slots-list");
+    const badgeEl = document.getElementById("counter-badge");
+    const resultEl = document.getElementById("result-msg");
+
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function getItem(id) {
+      return items.find((x) => x.id === id) || null;
+    }
+
+    function usedPlIds() {
+      return slots.map((s) => s.plId).filter((x) => x !== null);
+    }
+
+    function usedLaIds() {
+      return slots.map((s) => s.laId).filter((x) => x !== null);
+    }
+
+    function updateBadge() {
+      const completeCount = slots.filter((s) => s.plId !== null && s.laId !== null).length;
+      badgeEl.textContent = `Kompletnych: ${completeCount} / ${items.length}`;
+    }
+
+    function renderPools() {
+      const usedPl = usedPlIds();
+      const usedLa = usedLaIds();
+
+      plPoolEl.innerHTML = "";
+      shuffledPl.forEach((item) => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.textContent = item.pl;
+        if (usedPl.includes(item.id)) chip.classList.add("used");
+        if (selectedPlId === item.id) chip.classList.add("selected-pl");
+
+        chip.addEventListener("click", () => {
+          if (checked || usedPl.includes(item.id)) return;
+          selectedPlId = selectedPlId === item.id ? null : item.id;
+          renderPools();
+        });
+
+        plPoolEl.appendChild(chip);
+      });
+
+      laPoolEl.innerHTML = "";
+      shuffledLa.forEach((item) => {
+        const chip = document.createElement("div");
+        chip.className = "chip la-chip";
+        chip.textContent = item.la;
+        if (usedLa.includes(item.id)) chip.classList.add("used");
+        if (selectedLaId === item.id) chip.classList.add("selected-la");
+
+        chip.addEventListener("click", () => {
+          if (checked || usedLa.includes(item.id)) return;
+          selectedLaId = selectedLaId === item.id ? null : item.id;
+          renderPools();
+        });
+
+        laPoolEl.appendChild(chip);
+      });
+    }
+
+    function renderSlots() {
+      slotsEl.innerHTML = "";
+
+      items.forEach((correctItem, idx) => {
+        const slot = slots[idx];
+        const plItem = getItem(slot.plId);
+        const laItem = getItem(slot.laId);
+
+        const row = document.createElement("div");
+        row.className = "slot-row";
+
+        const num = document.createElement("div");
+        num.className = "slot-num";
+        num.textContent = idx + 1;
+
+        const box = document.createElement("div");
+        box.className = "slot-box";
+
+        const isComplete = plItem !== null && laItem !== null;
+        if (isComplete) box.classList.add("complete");
+
+        const plOk = slot.plId === correctItem.id;
+        const laOk = slot.laId === correctItem.id;
+
+        if (checked) {
+          if (plOk && laOk) {
+            box.classList.add("correct");
+          } else {
+            box.classList.add("wrong");
+          }
+        }
+
+        const lines = document.createElement("div");
+        lines.className = "slot-lines";
+
+        const plSpan = document.createElement("span");
+        plSpan.className = "slot-pl" + (!plItem ? " missing" : "");
+        plSpan.textContent = plItem ? plItem.pl : "Brak nazwy PL";
+
+        const laSpan = document.createElement("span");
+        laSpan.className = "slot-la" + (!laItem ? " missing" : "");
+        laSpan.textContent = laItem ? laItem.la : "Brak łaciny";
+
+        lines.appendChild(plSpan);
+        lines.appendChild(laSpan);
+
+        if (!checked && (plItem || laItem)) {
+          const clearBtn = document.createElement("button");
+          clearBtn.type = "button";
+          clearBtn.className = "clear-btn";
+          clearBtn.textContent = "✕";
+          clearBtn.title = "Wyczyść ten numer";
+          clearBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            slots[idx] = { plId: null, laId: null };
+            renderAll();
+          });
+          lines.appendChild(clearBtn);
+        } else {
+          const spacer = document.createElement("span");
+          lines.appendChild(spacer);
+        }
+
+        box.appendChild(lines);
+
+        if (checked && !(plOk && laOk)) {
+          const ans = document.createElement("div");
+          ans.className = "correct-answer";
+          ans.textContent = `Poprawnie: ${correctItem.pl} — ${correctItem.la}`;
+          box.appendChild(ans);
+        }
+
+        box.addEventListener("click", () => {
+          if (checked) return;
+          let assigned = false;
+
+          if (selectedPlId !== null) {
+            slots[idx].plId = selectedPlId;
+            selectedPlId = null;
+            assigned = true;
+          }
+          if (selectedLaId !== null) {
+            slots[idx].laId = selectedLaId;
+            selectedLaId = null;
+            assigned = true;
+          }
+
+          if (!assigned && (slots[idx].plId !== null || slots[idx].laId !== null)) {
+            slots[idx] = { plId: null, laId: null };
+          }
+
+          renderAll();
+        });
+
+        row.appendChild(num);
+        row.appendChild(box);
+        slotsEl.appendChild(row);
+      });
+    }
+
+    function renderAll() {
+      updateBadge();
+      renderPools();
+      renderSlots();
+    }
+
+    function resetQuiz() {
+      shuffledPl = shuffle(items);
+      shuffledLa = shuffle(items);
+      selectedPlId = null;
+      selectedLaId = null;
+      slots = items.map(() => ({ plId: null, laId: null }));
+      checked = false;
+      resultEl.textContent = "";
+      renderAll();
+    }
+
+    document.getElementById("check-btn").addEventListener("click", () => {
+      checked = true;
+      selectedPlId = null;
+      selectedLaId = null;
+
+      let fullyCorrect = 0;
+      let partialHits = 0;
+      const totalParts = items.length * 2;
+
+      items.forEach((item, idx) => {
+        const plOk = slots[idx].plId === item.id;
+        const laOk = slots[idx].laId === item.id;
+        if (plOk) partialHits++;
+        if (laOk) partialHits++;
+        if (plOk && laOk) fullyCorrect++;
+      });
+
+      renderAll();
+      resultEl.textContent =
+        `Pełne dopasowania (PL + łacina): ${fullyCorrect} / ${items.length} ` +
+        `| Poprawne pojedyncze hasła: ${partialHits} / ${totalParts}`;
+    });
+
+    document.getElementById("reset-btn").addEventListener("click", resetQuiz);
+
+    resetQuiz();
+  </script>
+</body>
+</html>
